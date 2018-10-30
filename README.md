@@ -1,3 +1,5 @@
+# It is a copy of [PowGraph](https://github.com/jegonzal/PowerGraph) and [GossipMap](https://github.com/uwescience/GossipMap). Please see there for details and credits are of oringinal authors.
+
 # GraphLab PowerGraph v2.2
 
 ## UPDATE: For a signficant evolution of this codebase, see GraphLab Create which is available for download at [turi.com](https://turi.com)
