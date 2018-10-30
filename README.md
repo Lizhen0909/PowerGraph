@@ -1,4 +1,4 @@
-# It is a copy of [PowGraph](https://github.com/jegonzal/PowerGraph) and [GossipMap](https://github.com/uwescience/GossipMap). Please see there for details and credits are of oringinal authors.
+# It is a copy of [PowGraph](https://github.com/jegonzal/PowerGraph) and [GossipMap](https://github.com/uwescience/GossipMap). Please see there for details and credits are of original authors.
 
 # GraphLab PowerGraph v2.2
 
