@@ -20,14 +20,21 @@
 
 #include <graphlab.hpp>
 
+bool graph_is_directed = false;
+bool graph_is_weighted = false;
+
+// The vertex data is its label 
+typedef int vertex_data_type;
+typedef float edge_data_type;
+
 struct label_counter {
-  std::map<std::string, int> label_count;
+  std::map<vertex_data_type, edge_data_type> label_count;
 
   label_counter() {
   }
     
   label_counter& operator+=(const label_counter& other) { 
-    for ( std::map<std::string, int>::const_iterator iter = other.label_count.begin();
+    for ( std::map<vertex_data_type, edge_data_type>::const_iterator iter = other.label_count.begin();
               iter != other.label_count.end(); ++iter ) {
             label_count[iter->first] += iter->second;
     }
@@ -44,32 +51,27 @@ struct label_counter {
   }
 };
 
-// The vertex data is its label 
-typedef std::string vertex_data_type;
+
 
 typedef label_counter gather_type;
  
 // The graph type is determined by the vertex and edge data types
-typedef graphlab::distributed_graph<std::string, graphlab::empty> graph_type;
+typedef graphlab::distributed_graph<vertex_data_type, edge_data_type> graph_type;
 
 bool line_parser(graph_type& graph, const std::string& filename, const std::string& textline) {
   std::stringstream strm(textline);
-  graphlab::vertex_id_type vid;
-  std::string label;
+  graphlab::vertex_id_type vid1;
+  graphlab::vertex_id_type vid2;
+  edge_data_type weight=1;
   // first entry in the line is a vertex ID
-  strm >> vid;
-  strm >> label;
+  strm >> vid1;
+  strm >> vid2;
+  if (graph_is_weighted) strm >> weight;
   // insert this vertex with its label 
-  graph.add_vertex(vid, label);
-  // while there are elements in the line, continue to read until we fail
-  while(1){
-    graphlab::vertex_id_type other_vid;
-    strm >> other_vid;
-    if (strm.fail())
-      break;
-    graph.add_edge(vid, other_vid);
-  }
-
+  graph.add_vertex(vid1, vid1);
+  graph.add_vertex(vid2, vid2);
+  graph.add_edge(vid1, vid2, weight);
+  
   return true;
 }
 
@@ -84,13 +86,21 @@ class labelpropagation :
     }
 
     gather_type gather(icontext_type& context, const vertex_type& vertex, edge_type& edge) const {
+      label_counter counter;
+
       // figure out which data to get from the edge.
       bool isEdgeSource = (vertex.id() == edge.source().id());
-      std::string neighbor_label = isEdgeSource ? edge.target().data() : edge.source().data();
-
-      // make a label_counter and place the neighbor data in it
-      label_counter counter;
-      counter.label_count[neighbor_label] = 1;
+      if (graph_is_directed) {
+	        if (isEdgeSource){
+		      vertex_data_type neighbor_label = edge.target().data();
+		      // make a label_counter and place the neighbor data in it
+		      counter.label_count[neighbor_label] = edge.data();
+		}
+      } else {
+	      vertex_data_type neighbor_label = isEdgeSource ? edge.target().data() : edge.source().data();
+	      // make a label_counter and place the neighbor data in it
+	      counter.label_count[neighbor_label] = edge.data();
+     }
 
 
       // gather_type is a label counter, so += will add neighbor counts to the
@@ -100,28 +110,32 @@ class labelpropagation :
 
     void apply(icontext_type& context, vertex_type& vertex, const gather_type& total) {
 
-      int maxCount = 0;
+      edge_data_type maxCount = 0;
 
-      std::string maxLabel = vertex.data();
+      vertex_data_type maxLabel = vertex.data();
 
       // Figure out which label of the vertex's neighbors' labels is most common
-      for ( std::map<std::string, int>::const_iterator iter = total.label_count.begin();
+      for ( std::map<vertex_data_type, edge_data_type>::const_iterator iter = total.label_count.begin();
                 iter != total.label_count.end(); ++iter ) {
               if (iter->second > maxCount) {
                 maxCount = iter->second;
                 maxLabel = iter->first;
-              }
+              } else if (iter->second == maxCount) {
+		if (maxLabel>iter->first)       maxLabel = iter->first;
+	      }
       }
 
       
+
       // if maxLabel differs to vertex data, mark vertex as changed and update
       // its data.
-      if ((vertex.data()).compare(maxLabel) != 0) {
+      if (vertex.data()!=maxLabel) {
         changed = true;
         vertex.data() = maxLabel;
       } else {
         changed = false;
       }
+	
     }
 
     edge_dir_type scatter_edges(icontext_type& context, const vertex_type& vertex) const {
@@ -163,7 +177,8 @@ int main(int argc, char** argv) {
   clopts.attach_option("graph", graph_dir, "The graph file. Required ");
   clopts.add_positional("graph");
   clopts.attach_option("execution", execution_type, "Execution type (synchronous or asynchronous)");
-
+  clopts.attach_option("directed", graph_is_directed, "directed graph.");
+  clopts.attach_option("weighted", graph_is_weighted, "weighted graph.");
   std::string saveprefix;
   clopts.attach_option("saveprefix", saveprefix,
                        "If set, will save the resultant pagerank to a "
@@ -180,12 +195,14 @@ int main(int argc, char** argv) {
  
   // Build the graph ----------------------------------------------------------
   graph_type graph(dc);
+  //dc.cout() << "Loading graph in format: " << "snap" << std::endl;  
+  //graph.load_format(graph_dir, "snap");
   dc.cout() << "Loading graph using line parser" << std::endl;
   graph.load(graph_dir, line_parser);
   // must call finalize before querying the graph
   graph.finalize();
 
-  dc.cout() << "#vertices: " << graph.num_vertices() << " #edges:" << graph.num_edges() << std::endl;
+  dc.cout() << "#vertices: " << graph.num_vertices() << " #edges:" << graph.num_edges() << " weighted:" << graph_is_weighted << " directed:" << graph_is_directed << std::endl;
 
   graphlab::omni_engine<labelpropagation> engine(dc, graph, execution_type, clopts);
 
