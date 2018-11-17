@@ -9,6 +9,8 @@ cmake_policy(SET CMP0003 NEW)
 # Preprocessor definition values are now escaped automatically.
 cmake_policy(SET CMP0005 NEW)
 
+set (CMAKE_CXX_STANDARD 11)
+
 # Determine where additional GraphLab specific cmake modules are
 # defined
 set(CMAKE_MODULE_PATH ${GraphLab_SOURCE_DIR}/cmake)

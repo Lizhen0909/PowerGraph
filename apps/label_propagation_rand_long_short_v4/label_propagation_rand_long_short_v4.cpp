@@ -18,21 +18,24 @@
  */
 
 #include <graphlab.hpp>
-#include <random>
 
-double rand01(){
-	    static std::random_device rd;  //Will be used to obtain a seed for the random number engine
-	    static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-	    static std::uniform_real_distribution<> dis(0.0, 1.0);
-	    return dis(gen);
+double rand01() {
+	static std::random_device rd; //Will be used to obtain a seed for the random number engine
+	static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+	static std::uniform_real_distribution<> dis(0.0, 1.0);
+	return dis(gen);
 }
 
-bool graph_is_directed = false;
 bool graph_is_weighted = false;
+bool graph_is_directed= false;
 
 // The vertex data is its label 
 typedef int vertex_data_type;
 typedef float edge_data_type;
+
+// Suppose the input is concat of two dataset, the first dataset is assume to be long samples. 
+//This number is the start of the second dataset (e.g. short samples)
+vertex_data_type second_min_node_id = -1;
 
 struct label_counter {
 	std::map<vertex_data_type, edge_data_type> label_count;
@@ -102,17 +105,44 @@ public:
 
 		// figure out which data to get from the edge.
 		bool isEdgeSource = (vertex.id() == edge.source().id());
-		if (graph_is_directed) {
-			if (isEdgeSource) {
-				vertex_data_type neighbor_label = edge.target().data();
-				// make a label_counter and place the neighbor data in it
-				counter.label_count[neighbor_label] = edge.data();
-			}
-		} else {
-			vertex_data_type neighbor_label =
-					isEdgeSource ? edge.target().data() : edge.source().data();
+		bool sourceIsFirst = (edge.source().id() < second_min_node_id);
+		bool targetIsFirst = (edge.target().id() < second_min_node_id);
+		vertex_data_type neighbor_label =
+				isEdgeSource ? edge.target().data() : edge.source().data();
+
+		/*
+		 * This version allows
+		 * 		label propagation between long and short
+		 * 		label propagation between short and short
+		 * 		label propagation between long and long
+		 */
+
+		// long to short
+		if (sourceIsFirst && !targetIsFirst) { //src is long, target is short, neighbor is target
 			// make a label_counter and place the neighbor data in it
 			counter.label_count[neighbor_label] = edge.data();
+			if (neighbor_label< second_min_node_id) //only long label is allowed
+				counter.label_count[neighbor_label] = edge.data();
+		}
+		// short to long
+		if (!sourceIsFirst && targetIsFirst) { //src is long, target is short, neighbor is target
+			// make a label_counter and place the neighbor data in it
+			if (neighbor_label< second_min_node_id) //only long label is allowed
+				counter.label_count[neighbor_label] = edge.data();
+
+		}
+		//short to short
+		if (!targetIsFirst && !sourceIsFirst) { //src is short, target is short, neighbor is short
+			// make a label_counter and place the neighbor data in it
+			if (neighbor_label< second_min_node_id) //only long label is allowed
+				counter.label_count[neighbor_label] = edge.data();
+		}
+
+		//long to long
+		if (targetIsFirst && sourceIsFirst) { //src is long, target is long, neighbor is long
+			// make a label_counter and place the neighbor data in it
+			if (neighbor_label< second_min_node_id) //only long label is allowed
+				counter.label_count[neighbor_label] = edge.data();
 		}
 
 		// gather_type is a label counter, so += will add neighbor counts to the
@@ -196,6 +226,7 @@ int main(int argc, char** argv) {
 			"Execution type (synchronous or asynchronous)");
 	clopts.attach_option("directed", graph_is_directed, "directed graph.");
 	clopts.attach_option("weighted", graph_is_weighted, "weighted graph.");
+	clopts.attach_option("smin", second_min_node_id, "weighted graph.");
 	std::string saveprefix;
 	clopts.attach_option("saveprefix", saveprefix,
 			"If set, will save the resultant pagerank to a "
@@ -207,6 +238,11 @@ int main(int argc, char** argv) {
 	}
 	if (graph_dir == "") {
 		dc.cout() << "Graph not specified. Cannot continue";
+		return EXIT_FAILURE;
+	}
+
+	if (second_min_node_id < 1) {
+		dc.cout() << "must specify smin";
 		return EXIT_FAILURE;
 	}
 

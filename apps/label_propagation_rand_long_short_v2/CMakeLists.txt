@@ -1,0 +1,2 @@
+project(label_propagation_rand_long_short_v2)
+add_graphlab_executable(label_propagation_rand_long_short_v2 label_propagation_rand_long_short_v2.cpp)
