@@ -146,7 +146,7 @@ public:
 	void apply(icontext_type& context, vertex_type& vertex,
 			const gather_type& total) {
 
-		edge_data_type maxCount = 0;
+		edge_data_type maxCount = 1;
 
 		vertex_data_type maxLabel = vertex.data();
 
