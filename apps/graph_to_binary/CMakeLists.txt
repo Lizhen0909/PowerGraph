@@ -1,0 +1,2 @@
+project(graph_to_binary)
+add_graphlab_executable(graph_to_binary graph_to_binary.cpp)
