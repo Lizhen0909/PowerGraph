@@ -159,6 +159,8 @@ public:
 		if (vertex.data() != maxLabel) {
 			changed = true;
 			vertex.data() = maxLabel;
+		}else if (maxLabel >= second_min_node_id){
+			changed=true;
 		} else {
 			changed = false;
 		}
