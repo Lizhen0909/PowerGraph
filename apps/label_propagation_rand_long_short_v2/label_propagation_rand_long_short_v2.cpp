@@ -118,11 +118,17 @@ public:
 		 */
 
 		// long to short
-		if (sourceIsFirst && !targetIsFirst) { //src is long, target is short, neighbor is target
+		if (!isEdgeSource && sourceIsFirst && !targetIsFirst) { //src is long, target is short, neighbor is long, v is short
 			// make a label_counter and place the neighbor data in it
 			if (neighbor_label< second_min_node_id) //only long label is allowed
 				counter.label_count[neighbor_label] = edge.data();
+		}else
+		if (isEdgeSource && !sourceIsFirst && targetIsFirst) { //src is short, target is long, neighbor is long, v is short
+			// make a label_counter and place the neighbor data in it
+			if (neighbor_label>= second_min_node_id) //only long label is allowed
+				counter.label_count[neighbor_label] = edge.data();
 		}
+
 
 		//short to short
 		if (!targetIsFirst && !sourceIsFirst) { //src is long, target is long, neighbor is long

@@ -118,15 +118,13 @@ public:
 		 * 		label propagation between long and long
 		 */
 
-		// long to short
-		if (sourceIsFirst && !targetIsFirst) { //src is long, target is short, neighbor is target
+		// between long and short
+		if (sourceIsFirst && !targetIsFirst) { //src is long, target is short, neighbor is target, v is long/short, neighbor is short/long
 			// make a label_counter and place the neighbor data in it
-			counter.label_count[neighbor_label] = edge.data();
 			if (neighbor_label< second_min_node_id) //only long label is allowed
 				counter.label_count[neighbor_label] = edge.data();
-		}
-		// short to long
-		if (!sourceIsFirst && targetIsFirst) { //src is long, target is short, neighbor is target
+		}else
+		if (!sourceIsFirst && targetIsFirst) { //src is short, target is long, neighbor is target, v is long/short, neighbor is short/long
 			// make a label_counter and place the neighbor data in it
 			if (neighbor_label< second_min_node_id) //only long label is allowed
 				counter.label_count[neighbor_label] = edge.data();
