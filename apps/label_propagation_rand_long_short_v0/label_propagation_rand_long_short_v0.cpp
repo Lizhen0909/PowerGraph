@@ -110,13 +110,20 @@ public:
 		bool targetIsFirst = (edge.target().id() < second_min_node_id);
 		vertex_data_type neighbor_label =
 				isEdgeSource ? edge.target().data() : edge.source().data();
+		//std::cout << "AAA "<< isEdgeSource << " " << sourceIsFirst << " "<< targetIsFirst << std::endl;
+		//std::cout << "BBB "<< vertex.id() << " " << edge.source().id() << " "<< edge.target().id() << std::endl;
 
 		/*
 		 * This version only alows label propagation from long to short
 		 */
-		if (sourceIsFirst && !targetIsFirst) { //src is long, target is short, neighbor is target
+		if (!isEdgeSource && sourceIsFirst && !targetIsFirst) { //src is long, target is short, neighbor is target
 			// make a label_counter and place the neighbor data in it
 			if (neighbor_label< second_min_node_id) //only long label is allowed
+				counter.label_count[neighbor_label] = edge.data();
+		}
+		if (isEdgeSource && !sourceIsFirst && targetIsFirst) { //src is long, target is short, neighbor is target
+			// make a label_counter and place the neighbor data in it
+			if (neighbor_label>= second_min_node_id) //only long label is allowed
 				counter.label_count[neighbor_label] = edge.data();
 		}
 
@@ -136,6 +143,7 @@ public:
 		for (std::map<vertex_data_type, edge_data_type>::const_iterator iter =
 				total.label_count.begin(); iter != total.label_count.end();
 				++iter) {
+		//std::cout << "CCC "<< maxLabel << " " << iter->first << " "<< iter->second << std::endl;
 			if (iter->second > maxCount) {
 				maxCount = iter->second;
 				maxLabel = iter->first;
