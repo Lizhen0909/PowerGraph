@@ -18,6 +18,8 @@
  */
 
 #include <graphlab.hpp>
+#include <random>
+
 
 double rand01() {
 	static std::random_device rd; //Will be used to obtain a seed for the random number engine
