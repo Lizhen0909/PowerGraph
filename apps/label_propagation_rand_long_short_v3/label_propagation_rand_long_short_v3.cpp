@@ -31,7 +31,7 @@ bool graph_is_directed= false;
 bool do_not_use_rand = false;
 
 // The vertex data is its label 
-typedef int vertex_data_type;
+typedef unsigned int vertex_data_type;
 typedef float edge_data_type;
 
 // Suppose the input is concat of two dataset, the first dataset is assume to be long samples. 
@@ -152,7 +152,7 @@ public:
 	void apply(icontext_type& context, vertex_type& vertex,
 			const gather_type& total) {
 
-		edge_data_type maxCount = 1;
+		edge_data_type maxCount = 0;
 
 		vertex_data_type maxLabel = vertex.data();
 

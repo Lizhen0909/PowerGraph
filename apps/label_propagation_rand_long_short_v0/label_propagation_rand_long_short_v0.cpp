@@ -31,7 +31,7 @@ bool graph_is_directed= false;
 bool do_not_use_rand = false;
 
 // The vertex data is its label 
-typedef int vertex_data_type;
+typedef unsigned int vertex_data_type;
 typedef float edge_data_type;
 
 // Suppose the input is concat of two dataset, the first dataset is assume to be long samples. 
@@ -114,17 +114,16 @@ public:
 		//std::cout << "BBB "<< vertex.id() << " " << edge.source().id() << " "<< edge.target().id() << std::endl;
 
 		/*
-		 * This version only alows label propagation from long to short
+		 * This version only alows label propagation from long to long
+		 * This version only alows label propagation from short to short
 		 */
 		//from long to short
-		if (!isEdgeSource && sourceIsFirst && !targetIsFirst) { //src is long, target is short, neighbor is long, v is short
+		if (!sourceIsFirst && !targetIsFirst) { //src is short, target is short, neighbor is short, v is short
 			// make a label_counter and place the neighbor data in it
-			if (neighbor_label< second_min_node_id) //only long label is allowed
 				counter.label_count[neighbor_label] = edge.data();
 		} else
-		if (isEdgeSource && !sourceIsFirst && targetIsFirst) { //src is short, target is long, neighbor is long, v is short
+		if (sourceIsFirst && targetIsFirst) { //src is long, target is long, neighbor is long, v is long
 			// make a label_counter and place the neighbor data in it
-			if (neighbor_label>= second_min_node_id) //only long label is allowed
 				counter.label_count[neighbor_label] = edge.data();
 		}
 
@@ -136,7 +135,7 @@ public:
 	void apply(icontext_type& context, vertex_type& vertex,
 			const gather_type& total) {
 
-		edge_data_type maxCount = 1;
+		edge_data_type maxCount = 0;
 
 		vertex_data_type maxLabel = vertex.data();
 
@@ -165,8 +164,6 @@ public:
 		if (vertex.data() != maxLabel) {
 			changed = true;
 			vertex.data() = maxLabel;
-		}else if (maxLabel >= second_min_node_id){
-			changed=true;
 		} else {
 			changed = false;
 		}
