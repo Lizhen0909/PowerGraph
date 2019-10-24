@@ -167,7 +167,8 @@ endmacro(requires_eigen)
 # libbz  =================================================================
 ExternalProject_Add(libbz2
   PREFIX ${GraphLab_SOURCE_DIR}/deps/libbz2
-  URL https://fossies.org/linux/misc/bzip2-1.0.6.tar.gz
+  #URL https://fossies.org/linux/misc/bzip2-1.0.6.tar.gz
+  URL https://sourceware.org/pub/bzip2/bzip2-1.0.6.tar.gz
   URL_MD5 00b516f4704d4a7cb50a1d97e6e8e15b
   INSTALL_DIR ${GraphLab_SOURCE_DIR}/deps/local
   CONFIGURE_COMMAND ""
