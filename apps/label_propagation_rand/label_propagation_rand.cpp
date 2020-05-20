@@ -66,6 +66,8 @@ typedef graphlab::distributed_graph<vertex_data_type, edge_data_type> graph_type
 
 bool line_parser(graph_type& graph, const std::string& filename,
 		const std::string& textline) {
+	if (textline[0]=='#') return true;
+
 	std::stringstream strm(textline);
 	graphlab::vertex_id_type vid1;
 	graphlab::vertex_id_type vid2;
