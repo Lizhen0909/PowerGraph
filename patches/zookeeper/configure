@@ -1,4 +1,5 @@
 #!/bin/bash
 ant compile_jute
-cd src/c
-./configure $@
+#cd src/c
+#cd zookeeper-client/zookeeper-client-c/ && rm -fr build && mkdir build && cd build && cmake .. $@
+cd zookeeper-client/zookeeper-client-c/ && autoreconf -fi && ./configure $@

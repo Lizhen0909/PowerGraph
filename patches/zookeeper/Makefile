@@ -1,5 +1,5 @@
 all:
-	cd src/c; make
+	cd zookeeper-client/zookeeper-client-c/ &&  make
 
 install:
-	cd src/c; make install
+	cd zookeeper-client/zookeeper-client-c/ &&  make install

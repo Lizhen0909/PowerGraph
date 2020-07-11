@@ -389,11 +389,14 @@ endif()
 
 ExternalProject_Add(zookeeper
   PREFIX ${GraphLab_SOURCE_DIR}/deps/zookeeper
-  URL https://archive.apache.org/dist/zookeeper/zookeeper-3.5.4-beta/zookeeper-3.5.4-beta.tar.gz
-  URL_MD5 074b20c2b81936ca6eb532546db9fcac
+  URL https://archive.apache.org/dist/zookeeper/zookeeper-3.5.8/apache-zookeeper-3.5.8.tar.gz
+  URL_MD5 614cf3499fe16d7e7c6f9c7c88814ef0
+  #URL https://archive.apache.org/dist/zookeeper/zookeeper-3.5.4-beta/zookeeper-3.5.4-beta.tar.gz
+  #URL_MD5 074b20c2b81936ca6eb532546db9fcac
   PATCH_COMMAND ${CMAKE_COMMAND} -E copy_directory ${GraphLab_SOURCE_DIR}/patches/zookeeper/ <SOURCE_DIR>
   BUILD_IN_SOURCE 1
-  CONFIGURE_COMMAND ./configure --prefix=<INSTALL_DIR> --disable-shared
+  #CONFIGURE_COMMAND ./configure -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>  -DWANT_CPPUNIT=OFF
+  CONFIGURE_COMMAND ./configure --prefix=<INSTALL_DIR> --disable-shared --without-cppunit
   INSTALL_DIR ${GraphLab_SOURCE_DIR}/deps/local)
 
 ## =============================================================
