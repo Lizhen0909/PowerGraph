@@ -20,7 +20,6 @@
 #include <graphlab.hpp>
 #include <random>
 
-
 double rand01() {
 	static std::random_device rd; //Will be used to obtain a seed for the random number engine
 	static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
@@ -29,7 +28,7 @@ double rand01() {
 }
 
 bool graph_is_weighted = false;
-bool graph_is_directed= false;
+bool graph_is_directed = false;
 bool do_not_use_rand = false;
 
 // The vertex data is its label 
@@ -46,7 +45,7 @@ struct label_counter {
 	label_counter() {
 	}
 
-	label_counter& operator+=(const label_counter& other) {
+	label_counter& operator+=(const label_counter &other) {
 		for (std::map<vertex_data_type, edge_data_type>::const_iterator iter =
 				other.label_count.begin(); iter != other.label_count.end();
 				++iter) {
@@ -56,11 +55,11 @@ struct label_counter {
 		return *this;
 	}
 
-	void save(graphlab::oarchive& oarc) const {
+	void save(graphlab::oarchive &oarc) const {
 		oarc << label_count;
 	}
 
-	void load(graphlab::iarchive& iarc) {
+	void load(graphlab::iarchive &iarc) {
 		iarc >> label_count;
 	}
 };
@@ -70,8 +69,8 @@ typedef label_counter gather_type;
 // The graph type is determined by the vertex and edge data types
 typedef graphlab::distributed_graph<vertex_data_type, edge_data_type> graph_type;
 
-bool line_parser(graph_type& graph, const std::string& filename,
-		const std::string& textline) {
+bool line_parser(graph_type &graph, const std::string &filename,
+		const std::string &textline) {
 	std::stringstream strm(textline);
 	graphlab::vertex_id_type vid1;
 	graphlab::vertex_id_type vid2;
@@ -95,13 +94,13 @@ class labelpropagation: public graphlab::ivertex_program<graph_type, gather_type
 	bool changed;
 
 public:
-	edge_dir_type gather_edges(icontext_type& context,
-			const vertex_type& vertex) const {
+	edge_dir_type gather_edges(icontext_type &context,
+			const vertex_type &vertex) const {
 		return graphlab::ALL_EDGES;
 	}
 
-	gather_type gather(icontext_type& context, const vertex_type& vertex,
-			edge_type& edge) const {
+	gather_type gather(icontext_type &context, const vertex_type &vertex,
+			edge_type &edge) const {
 		label_counter counter;
 
 		// figure out which data to get from the edge.
@@ -120,19 +119,18 @@ public:
 		//long to short
 		if (!isEdgeSource && sourceIsFirst && !targetIsFirst) { //src is long, target is short, neighbor is long, v is short
 			// make a label_counter and place the neighbor data in it
-			if (neighbor_label< second_min_node_id) //only long label is allowed
+			if (neighbor_label < second_min_node_id) //only long label is allowed
 				counter.label_count[neighbor_label] = edge.data();
-		}else
-		if (isEdgeSource && !sourceIsFirst && targetIsFirst) { //src is short, target is long, neighbor is long, v is short
+		} else if (isEdgeSource && !sourceIsFirst && targetIsFirst) { //src is short, target is long, neighbor is long, v is short
 			// make a label_counter and place the neighbor data in it
-			if (neighbor_label>= second_min_node_id) //only long label is allowed
+			if (neighbor_label >= second_min_node_id) //only long label is allowed
 				counter.label_count[neighbor_label] = edge.data();
 		}
 
 		//long to long
 		if (targetIsFirst && sourceIsFirst) { //src is long, target is long, neighbor is long, v is long, neighbor is long
 			// make a label_counter and place the neighbor data in it
-			if (neighbor_label< second_min_node_id) //only long label is allowed
+			if (neighbor_label < second_min_node_id) //only long label is allowed
 				counter.label_count[neighbor_label] = edge.data();
 		}
 		// gather_type is a label counter, so += will add neighbor counts to the
@@ -140,8 +138,8 @@ public:
 		return counter;
 	}
 
-	void apply(icontext_type& context, vertex_type& vertex,
-			const gather_type& total) {
+	void apply(icontext_type &context, vertex_type &vertex,
+			const gather_type &total) {
 
 		edge_data_type maxCount = 0;
 
@@ -155,11 +153,10 @@ public:
 				maxCount = iter->second;
 				maxLabel = iter->first;
 			} else if (iter->second == maxCount) {
-				if(!do_not_use_rand){
-					if (rand01()>0.5)
+				if (!do_not_use_rand) {
+					if (rand01() > 0.5)
 						maxLabel = iter->first;
-				}
-				else{
+				} else {
 					if (maxLabel > iter->first)
 						maxLabel = iter->first;
 				}
@@ -170,17 +167,19 @@ public:
 		// its data.
 		if (vertex.data() != maxLabel) {
 			changed = true;
-			vertex.data() = maxLabel;
-		}else if (maxLabel >= second_min_node_id){
-			changed=true;
+			if (rand01() > 0.4) {
+				vertex.data() = maxLabel;
+			}
+		} else if (maxLabel >= second_min_node_id) {
+			changed = true;
 		} else {
 			changed = false;
 		}
 
 	}
 
-	edge_dir_type scatter_edges(icontext_type& context,
-			const vertex_type& vertex) const {
+	edge_dir_type scatter_edges(icontext_type &context,
+			const vertex_type &vertex) const {
 		// if vertex data changes, scatter to all edges.
 		if (changed) {
 			return graphlab::ALL_EDGES;
@@ -189,8 +188,8 @@ public:
 		}
 	}
 
-	void scatter(icontext_type& context, const vertex_type& vertex,
-			edge_type& edge) const {
+	void scatter(icontext_type &context, const vertex_type &vertex,
+			edge_type &edge) const {
 		bool isEdgeSource = (vertex.id() == edge.source().id());
 
 		context.signal(isEdgeSource ? edge.target() : edge.source());
@@ -208,7 +207,7 @@ struct labelpropagation_writer {
 	}
 };
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 	// Initialize control plain using mpi
 	graphlab::mpi_tools::init(argc, argv);
 	graphlab::distributed_control dc;
@@ -224,7 +223,8 @@ int main(int argc, char** argv) {
 			"Execution type (synchronous or asynchronous)");
 	clopts.attach_option("directed", graph_is_directed, "directed graph.");
 	clopts.attach_option("weighted", graph_is_weighted, "weighted graph.");
-	clopts.attach_option("norand", do_not_use_rand, "use min to solve tie instead of rand");
+	clopts.attach_option("norand", do_not_use_rand,
+			"use min to solve tie instead of rand");
 	clopts.attach_option("smin", second_min_node_id, "weighted graph.");
 	std::string saveprefix;
 	clopts.attach_option("saveprefix", saveprefix,

@@ -18,6 +18,14 @@
  */
 
 #include <graphlab.hpp>
+#include <random>
+
+double rand01() {
+	static std::random_device rd; //Will be used to obtain a seed for the random number engine
+	static std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+	static std::uniform_real_distribution<> dis(0.0, 1.0);
+	return dis(gen);
+}
 
 bool graph_is_directed = false;
 bool graph_is_weighted = false;
@@ -32,7 +40,7 @@ struct label_counter {
 	label_counter() {
 	}
 
-	label_counter& operator+=(const label_counter& other) {
+	label_counter& operator+=(const label_counter &other) {
 		for (std::map<vertex_data_type, edge_data_type>::const_iterator iter =
 				other.label_count.begin(); iter != other.label_count.end();
 				++iter) {
@@ -42,11 +50,11 @@ struct label_counter {
 		return *this;
 	}
 
-	void save(graphlab::oarchive& oarc) const {
+	void save(graphlab::oarchive &oarc) const {
 		oarc << label_count;
 	}
 
-	void load(graphlab::iarchive& iarc) {
+	void load(graphlab::iarchive &iarc) {
 		iarc >> label_count;
 	}
 };
@@ -56,9 +64,10 @@ typedef label_counter gather_type;
 // The graph type is determined by the vertex and edge data types
 typedef graphlab::distributed_graph<vertex_data_type, edge_data_type> graph_type;
 
-bool line_parser(graph_type& graph, const std::string& filename,
-		const std::string& textline) {
-	if (textline[0]=='#') return true;
+bool line_parser(graph_type &graph, const std::string &filename,
+		const std::string &textline) {
+	if (textline[0] == '#')
+		return true;
 	std::stringstream strm(textline);
 	graphlab::vertex_id_type vid1;
 	graphlab::vertex_id_type vid2;
@@ -81,13 +90,13 @@ class labelpropagation: public graphlab::ivertex_program<graph_type, gather_type
 	bool changed;
 
 public:
-	edge_dir_type gather_edges(icontext_type& context,
-			const vertex_type& vertex) const {
+	edge_dir_type gather_edges(icontext_type &context,
+			const vertex_type &vertex) const {
 		return graphlab::ALL_EDGES;
 	}
 
-	gather_type gather(icontext_type& context, const vertex_type& vertex,
-			edge_type& edge) const {
+	gather_type gather(icontext_type &context, const vertex_type &vertex,
+			edge_type &edge) const {
 		label_counter counter;
 
 		// figure out which data to get from the edge.
@@ -110,8 +119,8 @@ public:
 		return counter;
 	}
 
-	void apply(icontext_type& context, vertex_type& vertex,
-			const gather_type& total) {
+	void apply(icontext_type &context, vertex_type &vertex,
+			const gather_type &total) {
 
 		edge_data_type maxCount = 0;
 
@@ -134,15 +143,17 @@ public:
 		// its data.
 		if (vertex.data() != maxLabel) {
 			changed = true;
-			vertex.data() = maxLabel;
+			if (rand01() > 0.4) {
+				vertex.data() = maxLabel;
+			}
 		} else {
 			changed = false;
 		}
 
 	}
 
-	edge_dir_type scatter_edges(icontext_type& context,
-			const vertex_type& vertex) const {
+	edge_dir_type scatter_edges(icontext_type &context,
+			const vertex_type &vertex) const {
 		// if vertex data changes, scatter to all edges.
 		if (changed) {
 			return graphlab::ALL_EDGES;
@@ -151,8 +162,8 @@ public:
 		}
 	}
 
-	void scatter(icontext_type& context, const vertex_type& vertex,
-			edge_type& edge) const {
+	void scatter(icontext_type &context, const vertex_type &vertex,
+			edge_type &edge) const {
 		bool isEdgeSource = (vertex.id() == edge.source().id());
 
 		context.signal(isEdgeSource ? edge.target() : edge.source());
@@ -170,7 +181,7 @@ struct labelpropagation_writer {
 	}
 };
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 	// Initialize control plain using mpi
 	graphlab::mpi_tools::init(argc, argv);
 	graphlab::distributed_control dc;
