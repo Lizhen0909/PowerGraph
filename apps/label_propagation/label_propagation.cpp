@@ -30,32 +30,46 @@ double rand01() {
 bool graph_is_directed = false;
 bool graph_is_weighted = false;
 
-// The vertex data is its label 
-typedef int vertex_data_type;
+// The vertex data is its label
+//typedef unsigned int vertex_data_type;
+typedef unsigned int label_data_type;
+typedef struct {
+	label_data_type label;
+	bool changed;
+	void save(graphlab::oarchive &oarc) const {
+		oarc << label << changed;
+	}
+
+	void load(graphlab::iarchive &iarc) {
+		iarc >> label >> changed;
+	}
+
+} vertex_data_type;
 typedef float edge_data_type;
 
 struct label_counter {
-	std::map<vertex_data_type, edge_data_type> label_count;
-
+	std::map<label_data_type, edge_data_type> label_count;
+	bool nbr_changed = false;
 	label_counter() {
 	}
 
 	label_counter& operator+=(const label_counter &other) {
-		for (std::map<vertex_data_type, edge_data_type>::const_iterator iter =
+		for (std::map<label_data_type, edge_data_type>::const_iterator iter =
 				other.label_count.begin(); iter != other.label_count.end();
 				++iter) {
 			label_count[iter->first] += iter->second;
-		}
 
+		}
+		nbr_changed = nbr_changed || other.nbr_changed;
 		return *this;
 	}
 
 	void save(graphlab::oarchive &oarc) const {
-		oarc << label_count;
+		oarc << label_count << nbr_changed;
 	}
 
 	void load(graphlab::iarchive &iarc) {
-		iarc >> label_count;
+		iarc >> label_count >> nbr_changed;
 	}
 };
 
@@ -78,8 +92,8 @@ bool line_parser(graph_type &graph, const std::string &filename,
 	if (graph_is_weighted)
 		strm >> weight;
 	// insert this vertex with its label
-	graph.add_vertex(vid1, vid1);
-	graph.add_vertex(vid2, vid2);
+	graph.add_vertex(vid1, { vid1, true });
+	graph.add_vertex(vid2, { vid2, true });
 	graph.add_edge(vid1, vid2, weight);
 
 	return true;
@@ -103,15 +117,22 @@ public:
 		bool isEdgeSource = (vertex.id() == edge.source().id());
 		if (graph_is_directed) {
 			if (isEdgeSource) {
-				vertex_data_type neighbor_label = edge.target().data();
+				const vertex_type &nbr = edge.target();
+				const vertex_data_type &neighbor_data = nbr.data();
 				// make a label_counter and place the neighbor data in it
-				counter.label_count[neighbor_label] = edge.data();
+				counter.label_count[neighbor_data.label] = edge.data();
+				counter.nbr_changed = neighbor_data.changed;
 			}
 		} else {
-			vertex_data_type neighbor_label =
-					isEdgeSource ? edge.target().data() : edge.source().data();
+			const vertex_type &nbr =
+					isEdgeSource ? edge.target() : edge.source();
+
+			const vertex_data_type &neighbor_data = nbr.data();
+
 			// make a label_counter and place the neighbor data in it
-			counter.label_count[neighbor_label] = edge.data();
+			counter.label_count[neighbor_data.label] = edge.data();
+			counter.nbr_changed = neighbor_data.changed;
+
 		}
 
 		// gather_type is a label counter, so += will add neighbor counts to the
@@ -121,13 +142,15 @@ public:
 
 	void apply(icontext_type &context, vertex_type &vertex,
 			const gather_type &total) {
-
+		if (total.label_count.empty()) {
+			return;
+		}
 		edge_data_type maxCount = 0;
 
-		vertex_data_type maxLabel = vertex.data();
-
+		const vertex_data_type &vdata = vertex.data();
+		label_data_type maxLabel = vdata.label;
 		// Figure out which label of the vertex's neighbors' labels is most common
-		for (std::map<vertex_data_type, edge_data_type>::const_iterator iter =
+		for (std::map<label_data_type, edge_data_type>::const_iterator iter =
 				total.label_count.begin(); iter != total.label_count.end();
 				++iter) {
 			if (iter->second > maxCount) {
@@ -141,15 +164,15 @@ public:
 
 		// if maxLabel differs to vertex data, mark vertex as changed and update
 		// its data.
-		if (vertex.data() != maxLabel) {
+		if (vertex.data().label != maxLabel) {
 			changed = true;
 			if (rand01() > 0.4) {
-				vertex.data() = maxLabel;
+				vertex.data() = { maxLabel, total.nbr_changed };
 			}
 		} else {
 			changed = false;
 		}
-
+		changed = changed || total.nbr_changed;
 	}
 
 	edge_dir_type scatter_edges(icontext_type &context,
@@ -173,7 +196,7 @@ public:
 struct labelpropagation_writer {
 	std::string save_vertex(graph_type::vertex_type v) {
 		std::stringstream strm;
-		strm << v.id() << "\t" << v.data() << "\n";
+		strm << v.id() << "\t" << v.data().label << "\n";
 		return strm.str();
 	}
 	std::string save_edge(graph_type::edge_type e) {
