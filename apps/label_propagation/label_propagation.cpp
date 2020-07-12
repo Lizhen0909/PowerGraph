@@ -167,11 +167,12 @@ public:
 		if (vertex.data().label != maxLabel) {
 			changed = true;
 			if (rand01() > 0.4) {
-				vertex.data() = { maxLabel, total.nbr_changed };
+				vertex.data().label = maxLabel;
 			}
 		} else {
 			changed = false;
 		}
+		vertex.data().changed=changed;
 		changed = changed || total.nbr_changed;
 	}
 

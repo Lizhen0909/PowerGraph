@@ -29,7 +29,6 @@ double rand01() {
 
 bool graph_is_weighted = false;
 bool graph_is_directed = false;
-bool do_not_use_rand = false;
 
 // The vertex data is its label
 //typedef unsigned int vertex_data_type;
@@ -154,6 +153,7 @@ public:
 				counter.nbr_changed = neighbor_data.changed;
 			}
 		}
+
 		// gather_type is a label counter, so += will add neighbor counts to the
 		// label_count map.
 		return counter;
@@ -177,13 +177,8 @@ public:
 				maxCount = iter->second;
 				maxLabel = iter->first;
 			} else if (iter->second == maxCount) {
-				if (!do_not_use_rand) {
-					if (rand01() > 0.5)
-						maxLabel = iter->first;
-				} else {
-					if (maxLabel > iter->first)
-						maxLabel = iter->first;
-				}
+				if (maxLabel > iter->first)
+					maxLabel = iter->first;
 			}
 		}
 
@@ -192,13 +187,12 @@ public:
 		if (vertex.data().label != maxLabel) {
 			changed = true;
 			if (rand01() > 0.4) {
-				vertex.data() = { maxLabel, total.nbr_changed };
+				vertex.data().label = maxLabel;
 			}
-		} else if (maxLabel >= second_min_node_id) {
-			changed = true;
 		} else {
 			changed = false;
 		}
+		vertex.data().changed=changed;
 		changed = changed || total.nbr_changed;
 
 	}
@@ -248,8 +242,6 @@ int main(int argc, char **argv) {
 			"Execution type (synchronous or asynchronous)");
 	clopts.attach_option("directed", graph_is_directed, "directed graph.");
 	clopts.attach_option("weighted", graph_is_weighted, "weighted graph.");
-	clopts.attach_option("norand", do_not_use_rand,
-			"use min to solve tie instead of rand");
 	clopts.attach_option("smin", second_min_node_id, "weighted graph.");
 	std::string saveprefix;
 	clopts.attach_option("saveprefix", saveprefix,
